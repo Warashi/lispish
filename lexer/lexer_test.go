@@ -14,9 +14,9 @@ func TestNextToken(t *testing.T) {
 			expected: []Token{
 				{Type: Delimiter, Literal: "(", Line: 1, Column: 1},
 				{Type: Identifier, Literal: "define", Line: 1, Column: 2},
-				{Type: Identifier, Literal: "x", Line: 1, Column: 8},
-				{Type: Literal, Literal: "10", Line: 1, Column: 10},
-				{Type: Delimiter, Literal: ")", Line: 1, Column: 12},
+				{Type: Identifier, Literal: "x", Line: 1, Column: 9},
+				{Type: Literal, Literal: "10", Line: 1, Column: 11},
+				{Type: Delimiter, Literal: ")", Line: 1, Column: 13},
 			},
 		},
 		{
@@ -26,7 +26,7 @@ func TestNextToken(t *testing.T) {
 				{Type: Identifier, Literal: "+", Line: 1, Column: 2},
 				{Type: Literal, Literal: "1", Line: 1, Column: 4},
 				{Type: Literal, Literal: "2", Line: 1, Column: 6},
-				{Type: Delimiter, Literal: ")", Line: 1, Column: 7},
+				{Type: Delimiter, Literal: ")", Line: 1, Column: 8},
 			},
 		},
 		{
@@ -46,8 +46,8 @@ func TestNextToken(t *testing.T) {
 				{Type: Delimiter, Literal: "(", Line: 1, Column: 46},
 				{Type: Identifier, Literal: "display", Line: 1, Column: 47},
 				{Type: Literal, Literal: "\"x is less than or equal to 10\"", Line: 1, Column: 55},
-				{Type: Delimiter, Literal: ")", Line: 1, Column: 84},
 				{Type: Delimiter, Literal: ")", Line: 1, Column: 85},
+				{Type: Delimiter, Literal: ")", Line: 1, Column: 86},
 			},
 		},
 		{
@@ -56,9 +56,9 @@ func TestNextToken(t *testing.T) {
 				{Type: Comment, Literal: "; this is a comment", Line: 1, Column: 1},
 				{Type: Delimiter, Literal: "(", Line: 2, Column: 1},
 				{Type: Identifier, Literal: "define", Line: 2, Column: 2},
-				{Type: Identifier, Literal: "y", Line: 2, Column: 9},
-				{Type: Literal, Literal: "20", Line: 2, Column: 11},
-				{Type: Delimiter, Literal: ")", Line: 2, Column: 13},
+				{Type: Identifier, Literal: "y", Line: 2, Column: 10},
+				{Type: Literal, Literal: "20", Line: 2, Column: 12},
+				{Type: Delimiter, Literal: ")", Line: 2, Column: 14},
 			},
 		},
 	}
