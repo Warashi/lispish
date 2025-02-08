@@ -14,9 +14,9 @@ func TestNextToken(t *testing.T) {
 			expected: []Token{
 				{Type: Delimiter, Literal: "(", Line: 1, Column: 1},
 				{Type: Identifier, Literal: "define", Line: 1, Column: 2},
-				{Type: Identifier, Literal: "x", Line: 1, Column: 8},
-				{Type: Literal, Literal: "10", Line: 1, Column: 10},
-				{Type: Delimiter, Literal: ")", Line: 1, Column: 12},
+				{Type: Identifier, Literal: "x", Line: 1, Column: 9},
+				{Type: Literal, Literal: "10", Line: 1, Column: 11},
+				{Type: Delimiter, Literal: ")", Line: 1, Column: 13},
 			},
 		},
 		{
