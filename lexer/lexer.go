@@ -100,15 +100,17 @@ func (l *Lexer) skipWhitespace() {
 // readComment reads a comment token.
 func (l *Lexer) readComment() Token {
 	position := l.position
+	startColumn := l.column
 	for l.ch != '\n' && l.ch != 0 {
 		l.readChar()
 	}
-	return Token{Type: Comment, Literal: l.input[position:l.position], Line: l.line, Column: l.column}
+	return Token{Type: Comment, Literal: l.input[position:l.position], Line: l.line, Column: startColumn}
 }
 
 // readString reads a string literal token.
 func (l *Lexer) readString() (Token, error) {
 	position := l.position + 1
+	startColumn := l.column
 	for {
 		l.readChar()
 		if l.ch == '"' || l.ch == 0 {
@@ -122,27 +124,29 @@ func (l *Lexer) readString() (Token, error) {
 		return Token{}, fmt.Errorf("unterminated string literal at line %d, column %d", l.line, l.column)
 	}
 	literal := l.input[position:l.position]
-	return Token{Type: Literal, Literal: literal, Line: l.line, Column: l.column}, nil
+	return Token{Type: Literal, Literal: literal, Line: l.line, Column: startColumn}, nil
 }
 
 // readIdentifier reads an identifier token.
 func (l *Lexer) readIdentifier() (Token, error) {
 	position := l.position
+	startColumn := l.column
 	for isLetter(l.ch) || isDigit(l.ch) {
 		l.readChar()
 	}
 	literal := l.input[position:l.position]
-	return Token{Type: Identifier, Literal: literal, Line: l.line, Column: l.column}, nil
+	return Token{Type: Identifier, Literal: literal, Line: l.line, Column: startColumn}, nil
 }
 
 // readNumber reads a numeric literal token.
 func (l *Lexer) readNumber() (Token, error) {
 	position := l.position
+	startColumn := l.column
 	for isDigit(l.ch) {
 		l.readChar()
 	}
 	literal := l.input[position:l.position]
-	return Token{Type: Literal, Literal: literal, Line: l.line, Column: l.column}, nil
+	return Token{Type: Literal, Literal: literal, Line: l.line, Column: startColumn}, nil
 }
 
 // isLetter checks if a character is a letter.
