@@ -82,7 +82,7 @@ func (l *Lexer) NextToken() (Token, error) {
 		} else if isDigit(l.ch) {
 			return l.readNumber()
 		} else {
-			return Token{}, fmt.Errorf("invalid character '%c' at line %d, column %d", l.ch, l.line, l.column}
+			return Token{}, fmt.Errorf("invalid character '%c' at line %d, column %d", l.ch, l.line, l.column)
 		}
 	}
 
