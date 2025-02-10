@@ -26,6 +26,9 @@ type String string
 // List は Scheme のリスト（S式）を表します。
 type List []Expr
 
+// Comment は Scheme のコメントを表します。
+type Comment string
+
 // Parser は lexer からのトークンをもとに Scheme の式を構文解析します。
 type Parser struct {
 	l        *lexer.Lexer
@@ -44,10 +47,6 @@ func NewParser(r io.Reader) *Parser {
 // nextToken は次のトークンを取得します（コメントはスキップ）。
 func (p *Parser) nextToken() {
 	tok := p.l.NextToken()
-	// コメントトークンは読み飛ばす
-	for tok.Type == lexer.TokenComment {
-		tok = p.l.NextToken()
-	}
 	p.curToken = tok
 }
 
@@ -88,6 +87,11 @@ func (p *Parser) ParseExpr() (Expr, error) {
 		return p.parseList()
 	case lexer.TokenQuote:
 		return p.parseQuote()
+	case lexer.TokenComment:
+		// コメントをパース
+		expr := Comment(p.curToken.Literal)
+		p.nextToken()
+		return expr, nil
 	case lexer.TokenRParen:
 		return nil, fmt.Errorf("unexpected ')'")
 	default:
