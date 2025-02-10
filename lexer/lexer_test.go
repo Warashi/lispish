@@ -1,72 +1,49 @@
 package lexer
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-func TestNextToken(t *testing.T) {
-	input := `(define x 42)
-; これはコメントです
-(define y "hello world")
-(quote (a b c))
-#t #f
-'(-3.14 foo)`
+func TestLexer(t *testing.T) {
+	input := `
+; コメント行をスキップする
+(define (square x)
+  (* x x))
+'(1 2 "three" 4.0)
+`
 
-	tests := []struct {
-		expectedType    TokenType
-		expectedLiteral string
-	}{
-		// (define x 42)
-		{LPAREN, "("},
-		{SYMBOL, "define"},
-		{SYMBOL, "x"},
-		{NUMBER, "42"},
-		{RPAREN, ")"},
+	lexer := NewLexer(strings.NewReader(input))
 
-		// コメント行はスキップされるのでテスト対象外
-
-		// (define y "hello world")
-		{LPAREN, "("},
-		{SYMBOL, "define"},
-		{SYMBOL, "y"},
-		{STRING, "hello world"},
-		{RPAREN, ")"},
-
-		// (quote (a b c))
-		{LPAREN, "("},
-		{SYMBOL, "quote"},
-		{LPAREN, "("},
-		{SYMBOL, "a"},
-		{SYMBOL, "b"},
-		{SYMBOL, "c"},
-		{RPAREN, ")"},
-		{RPAREN, ")"},
-
-		// #t #f
-		{BOOLEAN, "#t"},
-		{BOOLEAN, "#f"},
-
-		// '(-3.14 foo) は (quote (-3.14 foo)) と展開される
-		{LPAREN, "("},
-		{QUOTE, "'"},
-		{LPAREN, "("},
-		{NUMBER, "-3.14"},
-		{SYMBOL, "foo"},
-		{RPAREN, ")"},
-		{RPAREN, ")"},
-
-		// 入力終了
-		{EOF, ""},
+	// 期待するトークン列を定義
+	expectedTokens := []Token{
+		{Type: TokenLParen, Literal: "("},
+		{Type: TokenIdentifier, Literal: "define"},
+		{Type: TokenLParen, Literal: "("},
+		{Type: TokenIdentifier, Literal: "square"},
+		{Type: TokenIdentifier, Literal: "x"},
+		{Type: TokenRParen, Literal: ")"},
+		{Type: TokenLParen, Literal: "("},
+		{Type: TokenIdentifier, Literal: "*"},
+		{Type: TokenIdentifier, Literal: "x"},
+		{Type: TokenIdentifier, Literal: "x"},
+		{Type: TokenRParen, Literal: ")"},
+		{Type: TokenRParen, Literal: ")"},
+		{Type: TokenQuote, Literal: "'"},
+		{Type: TokenLParen, Literal: "("},
+		{Type: TokenNumber, Literal: "1"},
+		{Type: TokenNumber, Literal: "2"},
+		{Type: TokenString, Literal: "three"},
+		{Type: TokenNumber, Literal: "4.0"},
+		{Type: TokenRParen, Literal: ")"},
+		{Type: TokenEOF, Literal: ""},
 	}
 
-	l := New(input)
-
-	for i, tt := range tests {
-		tok := l.NextToken()
-
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - トークンタイプが不正です。期待値=%q, 実際=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - リテラルが不正です。期待値=%q, 実際=%q", i, tt.expectedLiteral, tok.Literal)
+	for i, expected := range expectedTokens {
+		token := lexer.NextToken()
+		if token.Type != expected.Type || token.Literal != expected.Literal {
+			t.Errorf("Token %d: expected (%s, %q), got (%s, %q)",
+				i, expected.Type, expected.Literal, token.Type, token.Literal)
 		}
 	}
 }
