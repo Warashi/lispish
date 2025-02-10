@@ -44,7 +44,7 @@ func TestNextToken(t *testing.T) {
 		{BOOLEAN, "#t"},
 		{BOOLEAN, "#f"},
 
-		// '(-3.14 foo)
+		// '(-3.14 foo) は (quote (-3.14 foo)) と展開される
 		{LPAREN, "("},
 		{QUOTE, "'"},
 		{LPAREN, "("},
