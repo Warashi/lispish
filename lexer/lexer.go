@@ -18,6 +18,7 @@ const (
 	TokenIdentifier  // 識別子
 	TokenNumber      // 数値（整数・浮動小数点）
 	TokenString      // 文字列リテラル
+	TokenComment     // コメント
 )
 
 // String は TokenType の文字列表現を返します。
@@ -37,6 +38,8 @@ func (t TokenType) String() string {
 		return "Number"
 	case TokenString:
 		return "String"
+	case TokenComment:
+		return "Comment"
 	default:
 		return "Unknown"
 	}
@@ -99,16 +102,18 @@ func (l *Lexer) NextToken() Token {
 			// Include all whitespace characters during comment processing
 			l.s.Whitespace = 0
 
+			commentText := ";"
 			for {
 				tok = l.s.Scan()
 				if tok == '\n' || tok == scanner.EOF {
 					break
 				}
+				commentText += l.s.TokenText()
 			}
 
 			// Restore the original whitespace flag
 			l.s.Whitespace = originalWhitespace
-			continue
+			return Token{Type: TokenComment, Literal: commentText}
 		}
 
 		switch tok {
