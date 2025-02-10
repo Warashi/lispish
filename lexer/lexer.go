@@ -3,6 +3,7 @@ package lexer
 import (
 	"io"
 	"strconv"
+	"strings"
 	"text/scanner"
 	"unicode"
 )
@@ -15,12 +16,12 @@ const (
 	TokenLParen      // (
 	TokenRParen      // )
 	TokenQuote       // '
-	TokenIdentifier  // 変数名など
+	TokenIdentifier  // 識別子
 	TokenNumber      // 数値（整数・浮動小数点）
 	TokenString      // 文字列リテラル
 )
 
-// String は TokenType のデバッグ用文字列表現を返します。
+// String は TokenType の文字列表現を返します。
 func (t TokenType) String() string {
 	switch t {
 	case TokenEOF:
@@ -57,48 +58,48 @@ type Lexer struct {
 func NewLexer(r io.Reader) *Lexer {
 	var s scanner.Scanner
 	s.Init(r)
-	// 識別子、文字列、整数、浮動小数点数をスキャンするように設定
+	// モードを設定：識別子、文字列、整数、浮動小数点を認識
 	s.Mode = scanner.ScanIdents | scanner.ScanStrings | scanner.ScanInts | scanner.ScanFloats
-
-	// Scheme では識別子に一部記号が含まれることがあるため、識別子のルールを拡張
+	// デフォルトの Whitespace には改行('\n')も含まれるため、コメント終了検出のために改行は除外する
+	s.Whitespace = scanner.GoWhitespace &^ (1 << '\n')
+	// Scheme では識別子に記号などが使われることがあるため、IsIdentRune を上書き
 	s.IsIdentRune = func(ch rune, i int) bool {
-		// '#' を含む（例: #t, #f など）
+		// '#' はどこでも許容（例: #t, #f など）
 		if ch == '#' {
 			return true
 		}
-		// Scheme の識別子として使われる記号を許容
-		if ch == '!' || ch == '$' || ch == '%' || ch == '&' ||
-			ch == '*' || ch == '+' || ch == '-' || ch == '/' ||
-			ch == ':' || ch == '<' || ch == '=' || ch == '>' ||
-			ch == '?' || ch == '^' || ch == '_' || ch == '~' {
+		// Scheme の識別子に使われる記号を許容
+		switch ch {
+		case '!', '$', '%', '&', '*', '+', '-', '/', ':', '<', '=', '>', '?', '^', '_', '~':
 			return true
 		}
-		// 2文字目以降であれば数字も許容
+		// 2文字目以降なら数字も許容
 		if i > 0 && unicode.IsDigit(ch) {
 			return true
 		}
-		// その他は Unicode の文字（アルファベット）を許容
+		// それ以外は Unicode の文字（アルファベット）を許容
 		return unicode.IsLetter(ch)
 	}
 	return &Lexer{s: s}
 }
 
 // NextToken は入力から次のトークンを返します。
-// Scheme のコメント（セミコロン ';' から行末）は読み飛ばします。
+// Scheme のコメント（';' から行末まで）は読み飛ばします。
 func (l *Lexer) NextToken() Token {
 	for {
 		tok := l.s.Scan()
-		// 入力終端なら EOF トークンを返す
 		if tok == scanner.EOF {
 			return Token{Type: TokenEOF, Literal: ""}
 		}
-
 		text := l.s.TokenText()
 
-		// ';' で始まる場合、行末までコメントとして読み飛ばす
-		if tok == ';' {
-			for tok != '\n' && tok != scanner.EOF {
+		// セミコロン ';' で始まる場合、コメント行として改行まで読み飛ばす
+		if text == ";" {
+			for {
 				tok = l.s.Scan()
+				if tok == '\n' || tok == scanner.EOF {
+					break
+				}
 			}
 			continue
 		}
@@ -122,11 +123,11 @@ func (l *Lexer) NextToken() Token {
 		case scanner.Ident:
 			return Token{Type: TokenIdentifier, Literal: text}
 		default:
-			// 空白や改行などはスキップ
+			// 改行、タブ、スペースなどはスキップ
 			if tok == '\n' || tok == '\r' || tok == '\t' || tok == ' ' {
 				continue
 			}
-			// その他は識別子として扱う
+			// 上記以外は識別子として扱う
 			return Token{Type: TokenIdentifier, Literal: text}
 		}
 	}
