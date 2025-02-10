@@ -16,7 +16,8 @@ const (
 	TokenRParen      // )
 	TokenQuote       // '
 	TokenIdentifier  // 識別子
-	TokenNumber      // 数値（整数・浮動小数点）
+	TokenInteger     // 整数
+	TokenFloat       // 浮動小数点数
 	TokenString      // 文字列リテラル
 	TokenComment     // コメント
 )
@@ -34,8 +35,10 @@ func (t TokenType) String() string {
 		return "Quote"
 	case TokenIdentifier:
 		return "Identifier"
-	case TokenNumber:
-		return "Number"
+	case TokenInteger:
+		return "Integer"
+	case TokenFloat:
+		return "Float"
 	case TokenString:
 		return "String"
 	case TokenComment:
@@ -130,8 +133,10 @@ func (l *Lexer) NextToken() Token {
 				unquoted = text
 			}
 			return Token{Type: TokenString, Literal: unquoted}
-		case scanner.Int, scanner.Float:
-			return Token{Type: TokenNumber, Literal: text}
+		case scanner.Int:
+			return Token{Type: TokenInteger, Literal: text}
+		case scanner.Float:
+			return Token{Type: TokenFloat, Literal: text}
 		case scanner.Ident:
 			return Token{Type: TokenIdentifier, Literal: text}
 		default:

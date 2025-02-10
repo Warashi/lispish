@@ -34,13 +34,37 @@ func TestLexer(t *testing.T) {
 		{Type: TokenRParen, Literal: ")"},
 		{Type: TokenQuote, Literal: "'"},
 		{Type: TokenLParen, Literal: "("},
-		{Type: TokenNumber, Literal: "1"},
-		{Type: TokenNumber, Literal: "2"},
+		{Type: TokenInteger, Literal: "1"},
+		{Type: TokenInteger, Literal: "2"},
 		{Type: TokenString, Literal: "three"},
-		{Type: TokenNumber, Literal: "4.0"},
+		{Type: TokenFloat, Literal: "4.0"},
 		{Type: TokenRParen, Literal: ")"},
 		{Type: TokenComment, Literal: "; コメント中のホワイトスペースを含む"},
 		{Type: TokenComment, Literal: "; コメント中の	タブを含む"},
+		{Type: TokenEOF, Literal: ""},
+	}
+
+	for i, expected := range expectedTokens {
+		token := lexer.NextToken()
+		if token.Type != expected.Type || token.Literal != expected.Literal {
+			t.Errorf("Token %d: expected (%s, %q), got (%s, %q)",
+				i, expected.Type, expected.Literal, token.Type, token.Literal)
+		}
+	}
+}
+
+func TestLexerWithAdditionalCases(t *testing.T) {
+	input := `
+123
+456.789
+`
+
+	lexer := NewLexer(strings.NewReader(input))
+
+	// 期待するトークン列
+	expectedTokens := []Token{
+		{Type: TokenInteger, Literal: "123"},
+		{Type: TokenFloat, Literal: "456.789"},
 		{Type: TokenEOF, Literal: ""},
 	}
 

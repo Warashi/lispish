@@ -8,7 +8,7 @@ This repository contains a lexer implementation for the Scheme programming langu
 
 - Tokenizes Scheme code into various token types: Identifiers, Keywords, Literals, Operators, Delimiters, and Comments.
 - Handles string literals, including escape sequences.
-- Handles numeric literals in different formats.
+- Handles numeric literals in different formats, distinguishing between integers and floating-point numbers.
 - Provides detailed error messages with line number, column number, and input snippet.
 - Categorizes errors into different types: syntax errors, invalid character errors, and unexpected end of input errors.
 - Includes unit tests to ensure correctness.
@@ -45,20 +45,17 @@ package main
 
 import (
     "fmt"
+    "strings"
     "github.com/Warashi/lispish/lexer"
 )
 
 func main() {
-    input := "(define (square x) (* x x))"
-    l := lexer.NewLexer(input)
+    input := "(define (square x) (* x x) 42 3.14)"
+    l := lexer.NewLexer(strings.NewReader(input))
 
     for {
-        tok, err := l.NextToken()
-        if err != nil {
-            fmt.Printf("Error: %v\n", err)
-            break
-        }
-        if tok.Type == lexer.EOF {
+        tok := l.NextToken()
+        if tok.Type == lexer.TokenEOF {
             break
         }
         fmt.Printf("Token: %+v\n", tok)
