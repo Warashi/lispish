@@ -8,8 +8,8 @@ const (
 	EOF     = "EOF"     // 入力の終端
 	LPAREN  = "("       // 左括弧
 	RPAREN  = ")"       // 右括弧
-	DOT     = "."       // ドット（リストのドット記法用）
-	QUOTE   = "'"       // クォート
+	DOT     = "."       // ドット
+	QUOTE   = "QUOTE"   // quote マクロ用（'）
 	NUMBER  = "NUMBER"  // 数値リテラル
 	STRING  = "STRING"  // 文字列リテラル
 	SYMBOL  = "SYMBOL"  // シンボル
@@ -22,12 +22,15 @@ type Token struct {
 	Literal string
 }
 
-// Lexer は入力文字列を保持し、読み出し位置などの状態を管理します。
+// Lexer は入力文字列とその読み出し状態、そして挿入すべき pending tokens を保持します。
 type Lexer struct {
 	input   string
 	pos     int  // 現在の位置（現在の文字を指す）
 	readPos int  // 次の文字を読むための位置
 	ch      byte // 現在注目している文字
+
+	// pending に token を溜め、NextToken 呼び出し時に先に返す
+	pending []Token
 }
 
 // New は与えられた入力文字列から Lexer を初期化して返します。
@@ -113,8 +116,33 @@ func (l *Lexer) readSymbol() string {
 }
 
 // NextToken は入力から次のトークンを切り出して返します。
+// quote (') を検出した場合は、( quote <datum> ) という形に展開します。
 func (l *Lexer) NextToken() Token {
+	// pending に溜まっているトークンがあればそれを返す
+	if len(l.pending) > 0 {
+		tok := l.pending[0]
+		l.pending = l.pending[1:]
+		return tok
+	}
+
 	l.skipWhitespace()
+
+	// quote 展開の処理
+	if l.ch == '\'' {
+		// consume the quote
+		l.readChar()
+		// 展開として、まず左括弧と quote キーワードを挿入
+		l.pending = append(l.pending, Token{Type: LPAREN, Literal: "("}, Token{Type: QUOTE, Literal: "'"})
+		// 次に、quote の対象となる「datum」1つ分のトークン列を取得する
+		datumTokens := l.readExpressionTokens()
+		l.pending = append(l.pending, datumTokens...)
+		// 最後に、quote 展開を閉じる右括弧を挿入
+		l.pending = append(l.pending, Token{Type: RPAREN, Literal: ")"})
+		// pending から最初のトークンを返す
+		tok := l.pending[0]
+		l.pending = l.pending[1:]
+		return tok
+	}
 
 	var tok Token
 
@@ -123,8 +151,6 @@ func (l *Lexer) NextToken() Token {
 		tok = Token{Type: LPAREN, Literal: string(l.ch)}
 	case ')':
 		tok = Token{Type: RPAREN, Literal: string(l.ch)}
-	case '\'':
-		tok = Token{Type: QUOTE, Literal: string(l.ch)}
 	case '.':
 		tok = Token{Type: DOT, Literal: string(l.ch)}
 	case '"':
@@ -132,7 +158,7 @@ func (l *Lexer) NextToken() Token {
 		tok.Literal = l.readString()
 		return tok
 	case ';':
-		// コメント行の場合、コメントを読み飛ばして次のトークンを返す
+		// コメント行は読み飛ばす
 		l.skipComment()
 		return l.NextToken()
 	case 0:
@@ -161,6 +187,33 @@ func (l *Lexer) NextToken() Token {
 
 	l.readChar()
 	return tok
+}
+
+// readExpressionTokens は1つの datum（式）に相当するトークン列を取得します。
+// datum がリストの場合は、対応する括弧まで全体を読み込みます。
+// そうでなければ、単一のトークンを返します。
+func (l *Lexer) readExpressionTokens() []Token {
+	tokens := []Token{}
+
+	// 最初のトークンを取得
+	tok := l.NextToken()
+	tokens = append(tokens, tok)
+	// もし最初が左括弧ならば、対応する右括弧まで読み込む
+	if tok.Type == LPAREN {
+		depth := 1
+		for depth > 0 {
+			tok = l.NextToken()
+			tokens = append(tokens, tok)
+			if tok.Type == LPAREN {
+				depth++
+			} else if tok.Type == RPAREN {
+				depth--
+			} else if tok.Type == EOF {
+				break
+			}
+		}
+	}
+	return tokens
 }
 
 // isDigit は ch が数字かどうかを判定します。
