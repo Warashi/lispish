@@ -3,7 +3,6 @@ package lexer
 import (
 	"io"
 	"strconv"
-	"strings"
 	"text/scanner"
 	"unicode"
 )
