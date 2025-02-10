@@ -178,7 +178,7 @@ func TestParser_Comments(t *testing.T) {
 		t.Fatalf("expected quoted list to be a List of length 3, got %v", expr2[1])
 	}
 	// Verify each element
-	expected = []Expr{Integer(1), Integer(2), Integer(3)}
+	expected := []Expr{Integer(1), Integer(2), Integer(3)}
 	for i, exp := range expected {
 		if !reflect.DeepEqual(quotedList[i], exp) {
 			t.Errorf("at index %d, expected %v, got %v", i, exp, quotedList[i])
