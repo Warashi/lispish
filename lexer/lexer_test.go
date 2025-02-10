@@ -19,6 +19,7 @@ func TestLexer(t *testing.T) {
 
 	// 期待するトークン列
 	expectedTokens := []Token{
+		{Type: TokenComment, Literal: "; コメント行をスキップする"},
 		{Type: TokenLParen, Literal: "("},
 		{Type: TokenIdentifier, Literal: "define"},
 		{Type: TokenLParen, Literal: "("},
@@ -38,6 +39,8 @@ func TestLexer(t *testing.T) {
 		{Type: TokenString, Literal: "three"},
 		{Type: TokenNumber, Literal: "4.0"},
 		{Type: TokenRParen, Literal: ")"},
+		{Type: TokenComment, Literal: "; コメント中のホワイトスペースを含む"},
+		{Type: TokenComment, Literal: "; コメント中の	タブを含む"},
 		{Type: TokenEOF, Literal: ""},
 	}
 
