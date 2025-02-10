@@ -15,7 +15,7 @@ func TestLexer(t *testing.T) {
 
 	lexer := NewLexer(strings.NewReader(input))
 
-	// 期待するトークン列を定義
+	// 期待するトークン列
 	expectedTokens := []Token{
 		{Type: TokenLParen, Literal: "("},
 		{Type: TokenIdentifier, Literal: "define"},
