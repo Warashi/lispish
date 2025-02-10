@@ -11,7 +11,7 @@ This repository contains a lexer implementation for the Scheme programming langu
 - Handles numeric literals in different formats.
 - Provides detailed error messages with line number, column number, and input snippet.
 - Categorizes errors into different types: syntax errors, invalid character errors, and unexpected end of input errors.
-- Includes unit tests and integration tests to ensure correctness.
+- Includes unit tests to ensure correctness.
 
 ### Usage
 
@@ -34,12 +34,6 @@ To use the lexer, follow these steps:
 
    ```sh
    go test ./lexer -v
-   ```
-
-4. Run the integration tests:
-
-   ```sh
-   go test ./lexer -v -run Integration
    ```
 
 ### Example
