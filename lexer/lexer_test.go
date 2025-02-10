@@ -11,6 +11,8 @@ func TestLexer(t *testing.T) {
 (define (square x)
   (* x x))
 '(1 2 "three" 4.0)
+; コメント中のホワイトスペースを含む
+; コメント中の	タブを含む
 `
 
 	lexer := NewLexer(strings.NewReader(input))

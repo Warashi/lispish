@@ -94,12 +94,20 @@ func (l *Lexer) NextToken() Token {
 
 		// セミコロン ';' で始まる場合、コメント行として改行まで読み飛ばす
 		if text == ";" {
+			// Save the current whitespace flag
+			originalWhitespace := l.s.Whitespace
+			// Include all whitespace characters during comment processing
+			l.s.Whitespace = 0
+
 			for {
 				tok = l.s.Scan()
 				if tok == '\n' || tok == scanner.EOF {
 					break
 				}
 			}
+
+			// Restore the original whitespace flag
+			l.s.Whitespace = originalWhitespace
 			continue
 		}
 
