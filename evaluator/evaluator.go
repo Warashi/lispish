@@ -7,7 +7,7 @@ import (
 )
 
 // Env は変数とその値の束縛を保持する環境です。
-// outer があればネストした環境（静的スコープ）を実現します。
+// outer があれば、ネストした環境（静的スコープ）を実現します。
 type Env struct {
 	vars  map[parser.Symbol]parser.Expr
 	outer *Env
@@ -37,22 +37,44 @@ func (env *Env) Set(sym parser.Symbol, val parser.Expr) {
 	env.vars[sym] = val
 }
 
-// BuiltinFunc は組み込み関数の型です。
-type BuiltinFunc func(args []parser.Expr) (parser.Expr, error)
-
-// Builtin は組み込み関数のラッパーです。
-type Builtin struct {
-	Fn BuiltinFunc
+// Callable インターフェースは、関数オブジェクトとして呼び出し可能なものが実装すべきメソッドを定義します。
+type Callable interface {
+	// Call は引数を受け取り、その評価結果を返します。
+	Call(args []parser.Expr) (parser.Expr, error)
 }
 
-// Closure はユーザ定義の関数（ラムダ式）のクロージャです。
+// Builtin は組み込み関数を表す型です。
+// 新たな組み込み関数を追加する場合、Name と実際の関数処理（Fn）を設定してインスタンス化してください。
+type Builtin struct {
+	Name string
+	Fn   func(args []parser.Expr) (parser.Expr, error)
+}
+
+// Call により、組み込み関数を呼び出します。
+func (b *Builtin) Call(args []parser.Expr) (parser.Expr, error) {
+	return b.Fn(args)
+}
+
+// Closure はユーザ定義の関数（lambda式）のクロージャを表します。
 type Closure struct {
 	params []parser.Symbol
 	body   parser.Expr
 	env    *Env
 }
 
-// Eval はAST（parser.Expr）を評価し、その結果の値を返します。
+// Call により、クロージャ内の式を引数付きで評価します。
+func (c *Closure) Call(args []parser.Expr) (parser.Expr, error) {
+	if len(args) != len(c.params) {
+		return nil, fmt.Errorf("expected %d arguments, got %d", len(c.params), len(args))
+	}
+	newEnv := NewEnv(c.env)
+	for i, param := range c.params {
+		newEnv.Set(param, args[i])
+	}
+	return Eval(c.body, newEnv)
+}
+
+// Eval は AST（parser.Expr）を評価し、その結果を返します。
 func Eval(expr parser.Expr, env *Env) (parser.Expr, error) {
 	switch exp := expr.(type) {
 	// リテラルはそのまま返す
@@ -84,11 +106,11 @@ func Eval(expr parser.Expr, env *Env) (parser.Expr, error) {
 				return exp[1], nil
 
 			case "define":
-				// (define var expr) あるいは関数定義の短縮形
+				// (define var expr) または (define (fun arg...) body...)
 				if len(exp) < 3 {
 					return nil, fmt.Errorf("define: too few arguments")
 				}
-				// 関数定義の形: (define (fun arg1 arg2 ...) body ...)
+				// 関数定義の短縮形の場合
 				if list, ok := exp[1].(parser.List); ok {
 					if len(list) == 0 {
 						return nil, fmt.Errorf("define: invalid function definition")
@@ -105,7 +127,6 @@ func Eval(expr parser.Expr, env *Env) (parser.Expr, error) {
 						}
 						params = append(params, s)
 					}
-					// 複数の式があれば順次評価し、最後の値を返す（ここでは簡単のため List としてまとめる）
 					var body parser.Expr
 					if len(exp) == 3 {
 						body = exp[2]
@@ -120,7 +141,7 @@ func Eval(expr parser.Expr, env *Env) (parser.Expr, error) {
 					env.Set(funName, closure)
 					return funName, nil
 				} else {
-					// 変数定義: (define var expr)
+					// 変数定義の場合: (define var expr)
 					varName, ok := exp[1].(parser.Symbol)
 					if !ok {
 						return nil, fmt.Errorf("define: first argument must be a symbol")
@@ -134,7 +155,7 @@ func Eval(expr parser.Expr, env *Env) (parser.Expr, error) {
 				}
 
 			case "lambda":
-				// (lambda (params...) body...) → 関数（クロージャ）を返す
+				// (lambda (params...) body...) → クロージャを生成して返す
 				if len(exp) < 3 {
 					return nil, fmt.Errorf("lambda: too few arguments")
 				}
@@ -169,7 +190,8 @@ func Eval(expr parser.Expr, env *Env) (parser.Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		// 引数を評価
+
+		// 引数は評価する
 		var args []parser.Expr
 		for _, arg := range exp[1:] {
 			evaluatedArg, err := Eval(arg, env)
@@ -178,24 +200,15 @@ func Eval(expr parser.Expr, env *Env) (parser.Expr, error) {
 			}
 			args = append(args, evaluatedArg)
 		}
-		// 関数適用
-		switch fn := op.(type) {
-		case *Builtin:
-			return fn.Fn(args)
-		case *Closure:
-			if len(args) != len(fn.params) {
-				return nil, fmt.Errorf("expected %d arguments, got %d", len(fn.params), len(args))
-			}
-			newEnv := NewEnv(fn.env)
-			for i, param := range fn.params {
-				newEnv.Set(param, args[i])
-			}
-			return Eval(fn.body, newEnv)
-		default:
+
+		// op が Callable インターフェースを実装しているかチェック
+		callable, ok := op.(Callable)
+		if !ok {
 			return nil, fmt.Errorf("not a function: %v", op)
 		}
+		return callable.Call(args)
 
-	// コメントはそのまま返す（評価対象にならない）
+	// コメントはそのまま返す（実行時には無視してもよい）
 	case parser.Comment:
 		return exp, nil
 
@@ -217,36 +230,10 @@ func EvalAll(exprs []parser.Expr, env *Env) (parser.Expr, error) {
 	return result, nil
 }
 
-// --- 組み込み関数 ---
-
-// builtinMul は "*" を実装します。
-// 引数が整数・浮動小数点の場合に乗算を行い、どれかが浮動小数点なら結果も浮動小数点となります。
-func builtinMul(args []parser.Expr) (parser.Expr, error) {
-	if len(args) == 0 {
-		return parser.Integer(1), nil
-	}
-	isFloat := false
-	productInt := int64(1)
-	productFloat := 1.0
-	for _, arg := range args {
-		switch v := arg.(type) {
-		case parser.Integer:
-			productInt *= int64(v)
-			productFloat *= float64(v)
-		case parser.Float:
-			isFloat = true
-			productFloat *= float64(v)
-		default:
-			return nil, fmt.Errorf("*: invalid argument type %T", arg)
-		}
-	}
-	if isFloat {
-		return parser.Float(productFloat), nil
-	}
-	return parser.Integer(productInt), nil
-}
+// --- 組み込み関数の実装例 ---
 
 // builtinAdd は "+" を実装します。
+// 整数・浮動小数点数に対して加算を行います。
 func builtinAdd(args []parser.Expr) (parser.Expr, error) {
 	if len(args) == 0 {
 		return parser.Integer(0), nil
@@ -272,11 +259,45 @@ func builtinAdd(args []parser.Expr) (parser.Expr, error) {
 	return parser.Integer(sumInt), nil
 }
 
-// NewGlobalEnv は組み込み手続きなどを登録したグローバル環境を返します。
+// builtinMul は "*" を実装します。
+// 引数が整数または浮動小数点数の場合に乗算を行います。
+func builtinMul(args []parser.Expr) (parser.Expr, error) {
+	if len(args) == 0 {
+		return parser.Integer(1), nil
+	}
+	isFloat := false
+	prodInt := int64(1)
+	prodFloat := 1.0
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case parser.Integer:
+			prodInt *= int64(v)
+			prodFloat *= float64(v)
+		case parser.Float:
+			isFloat = true
+			prodFloat *= float64(v)
+		default:
+			return nil, fmt.Errorf("*: invalid argument type %T", arg)
+		}
+	}
+	if isFloat {
+		return parser.Float(prodFloat), nil
+	}
+	return parser.Integer(prodInt), nil
+}
+
+// NewGlobalEnv は、組み込み関数などが登録されたグローバル環境を生成して返します。
+// 新たな組み込み関数を追加する場合は、ここに env.Set() を追加してください。
 func NewGlobalEnv() *Env {
 	env := NewEnv(nil)
-	env.Set("+", &Builtin{Fn: builtinAdd})
-	env.Set("*", &Builtin{Fn: builtinMul})
-	// 必要に応じて他の組み込み手続き（例: "-", "/" など）を追加してください
+	env.Set("+", &Builtin{
+		Name: "+",
+		Fn:   builtinAdd,
+	})
+	env.Set("*", &Builtin{
+		Name: "*",
+		Fn:   builtinMul,
+	})
+	// 必要に応じて他の組み込み関数（例: "-", "/" など）を追加可能です。
 	return env
 }
