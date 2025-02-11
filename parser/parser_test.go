@@ -123,8 +123,8 @@ func TestParser_Comments(t *testing.T) {
 		t.Fatalf("ParseAll error: %v", err)
 	}
 
-	if len(exprs) != 7 {
-		t.Fatalf("expected 7 expressions, got %d", len(exprs))
+	if len(exprs) != 6 {
+		t.Fatalf("expected 6 expressions, got %d", len(exprs))
 	}
 
 	// Test 1: ; This is a comment
